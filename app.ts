@@ -6,6 +6,8 @@ export const app = express();
 import { ErrorMiddleware } from "./middleware/Error";
 import morgan from "morgan";
 import UserRouter from "./routes/user.routes";
+import ProductRouter from "./routes/products.routes";
+import CommentRouter from "./routes/comments.routes";
 
 // body parser
 app.use(express.json({ limit: "50mb" }));
@@ -22,6 +24,8 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/auth", UserRouter);
+app.use("/api/prod", ProductRouter);
+app.use("/api/comments", CommentRouter);
 
 // middleware to catch error from unknown routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {

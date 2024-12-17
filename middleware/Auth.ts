@@ -18,7 +18,12 @@ export const isAuthenticated = CatchAsyncError(
       process.env.ACCESS_TOKEN as string
     ) as JwtPayload;
     if (!decoded) {
-      return next(new ErrorHandler("Invalid access token", 401));
+      return next(
+        new ErrorHandler(
+          "Invalid access token. Please refresh your application",
+          401
+        )
+      );
     }
     const user = await redis.get(decoded.id);
 

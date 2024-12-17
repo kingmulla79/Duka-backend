@@ -27,6 +27,77 @@ interface IRegistrationBody {
   avatar_url?: string;
 }
 
+const EmailQuery = (email: string) => {
+  return new Promise((resolve, reject) => {
+    pool.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email],
+      (err, result: Array<any>) => {
+        if (result.length > 0) {
+          return reject(
+            new ErrorHandler(
+              "The email is already in use. Please choose another one",
+              409
+            )
+          );
+        }
+        if (err) {
+          return reject(new ErrorHandler(err, 400));
+        }
+
+        resolve(result);
+      }
+    );
+  });
+};
+
+const UsernameQuery = (username: string) => {
+  return new Promise((resolve, reject) => {
+    pool.query(
+      "SELECT * FROM users WHERE username = ?",
+      [username],
+      (err, result: Array<any>) => {
+        if (result.length > 0) {
+          return reject(
+            new ErrorHandler(
+              "The username is already in use. Please choose another one",
+              409
+            )
+          );
+        }
+        if (err) {
+          return reject(new ErrorHandler(err, 400));
+        }
+
+        resolve(result);
+      }
+    );
+  });
+};
+
+const PhoneQuery = (phone: string) => {
+  return new Promise((resolve, reject) => {
+    pool.query(
+      "SELECT * FROM users WHERE phone = ?",
+      [phone],
+      (err, result: Array<any>) => {
+        if (result.length > 0) {
+          return reject(
+            new ErrorHandler(
+              "The phone is already in use. Please choose another one",
+              409
+            )
+          );
+        }
+        if (err) {
+          return reject(new ErrorHandler(err, 400));
+        }
+        resolve(result);
+      }
+    );
+  });
+};
+
 export const UserRegistration = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -38,59 +109,9 @@ export const UserRegistration = CatchAsyncError(
         return next(new ErrorHandler("Please provide all the details", 422));
       }
 
-      pool.query(
-        "SELECT * FROM users WHERE email = ?",
-        [email],
-        (err, result: any) => {
-          if (result.length > 0) {
-            return next(
-              new ErrorHandler(
-                "The email is already in use. Please choose another one",
-                409
-              )
-            );
-          }
-          if (err) {
-            return next(new ErrorHandler(err, 400));
-          }
-        }
-      );
-
-      pool.query(
-        "SELECT * FROM users WHERE username = ?",
-        [username],
-        (err, result: any) => {
-          if (result.length > 0) {
-            return next(
-              new ErrorHandler(
-                "The username is already in use. Please choose another one",
-                409
-              )
-            );
-          }
-          if (err) {
-            return next(new ErrorHandler(err, 400));
-          }
-        }
-      );
-
-      pool.query(
-        "SELECT * FROM users WHERE phone = ?",
-        [phone],
-        (err, result: any) => {
-          if (result.length > 0) {
-            return next(
-              new ErrorHandler(
-                "The phone is already in use. Please choose another one",
-                409
-              )
-            );
-          }
-          if (err) {
-            return next(new ErrorHandler(err, 400));
-          }
-        }
-      );
+      await UsernameQuery(username);
+      await EmailQuery(email);
+      await PhoneQuery(phone);
 
       if (avatar) {
         const myCloud = await cloudinary.uploader.upload(avatar, {
@@ -130,6 +151,7 @@ export const UserRegistration = CatchAsyncError(
         path.join(__dirname, "../mails/Activation-mails.ejs"),
         data
       );
+
       try {
         await sendMail(
           {
@@ -169,7 +191,9 @@ interface IActivationToken {
   activationCode: string;
 }
 
-export const createActivationToken = (user: any): IActivationToken => {
+export const createActivationToken = (
+  user: IRegistrationBody
+): IActivationToken => {
   const activationCode = Math.floor(1000 + Math.random() * 9000).toString();
   const token = jwt.sign(
     { user, activationCode },
@@ -278,7 +302,7 @@ export const UserLogout = CatchAsyncError(
       await redis.del(userID);
       res.cookie("access_token", "", { maxAge: 1 });
       res.cookie("refresh_token", "", { maxAge: 1 });
-      pool.end();
+      // pool.end();
       res.status(200).json({
         success: true,
         message: `User succcessfully logged out`,
@@ -299,12 +323,15 @@ export const UserUpdateAccessToken = CatchAsyncError(
         process.env.REFRESH_TOKEN as string
       ) as JwtPayload;
       if (!decode) {
-        return next(new ErrorHandler("Could refresh token", 401));
+        return next(new ErrorHandler("Cannot refresh token", 401));
       }
       const session = await redis.get(decode.id as string);
       if (!session) {
         return next(
-          new ErrorHandler("Please login to access these resources", 401)
+          new ErrorHandler(
+            "User not logged in. Please login to access these resources",
+            401
+          )
         );
       }
       const user = JSON.parse(session);
@@ -317,7 +344,6 @@ export const UserUpdateAccessToken = CatchAsyncError(
       res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
       await redis.set(user._id, JSON.stringify(user), "EX", 604800); //expires in seven days
-      console.log("successfully refreshed tokens");
       next();
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
@@ -467,7 +493,7 @@ export const UserUpdateInfo = CatchAsyncError(
         res.status(201).json({
           success: true,
           message: "Information successfully updated",
-          user: user,
+          // user: user,
         });
       }
     } catch (error: any) {
