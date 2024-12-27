@@ -17,6 +17,7 @@ import { redis } from "../utils/Redis";
 import { v2 as cloudinary } from "cloudinary";
 import { pool } from "../utils/Database";
 import IUser from "../models/user.model";
+import { CreateNotificationQuery } from "./notifications.controller";
 
 interface IRegistrationBody {
   username: string;
@@ -92,6 +93,27 @@ const PhoneQuery = (phone: string) => {
         if (err) {
           return reject(new ErrorHandler(err, 400));
         }
+        resolve(result);
+      }
+    );
+  });
+};
+
+const ResetPasswordQuery = (email: string) => {
+  return new Promise((resolve, reject) => {
+    pool.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email],
+      (err, result: Array<any>) => {
+        if (err) {
+          return reject(new ErrorHandler(err, 400));
+        }
+        if (result.length === 0) {
+          return reject(
+            new ErrorHandler(`No user with the provided email`, 400)
+          );
+        }
+
         resolve(result);
       }
     );
@@ -236,10 +258,17 @@ export const UserActivation = CatchAsyncError(
 
       pool.query(
         `INSERT INTO users (email, username, password, phone, avatar_public_id, avatar_url, verified) VALUES ("${email}", "${username}", "${hashed_password}", "${phone}", "${avatar_public_id}", "${avatar_url}", "1")`,
-        (err, result) => {
+        async (err: any, result: any) => {
           if (err) {
             return next(new ErrorHandler(err, 500));
           } else {
+            // test the code
+            const title = "Account Creation Successful";
+            const notification_message =
+              "Thank you for signing up with our platform. Start shopping at affordable rates for high quality products guarantee to surpass your expectations!";
+            const user_id = result.insertId;
+
+            await CreateNotificationQuery(title, notification_message, user_id);
             res.status(201).json({
               success: true,
               message: `Your account has been successfully verified`,
@@ -357,20 +386,14 @@ export const UserGetUserInfo = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userID = req.user?.id;
-      pool.query(
-        `SELECT * FROM users WHERE id = ?`,
-        [userID],
-        (err, result: any) => {
-          if (err) {
-            return next(new ErrorHandler(err, 500));
-          }
-          res.status(200).json({
-            success: true,
-            message: "Information successfully fetched",
-            user: result[0],
-          });
-        }
-      );
+      const UserJSON = await redis.get(userID);
+      if (UserJSON) {
+        const user = JSON.parse(UserJSON);
+        res.status(200).json({
+          success: true,
+          user,
+        });
+      }
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
     }
@@ -415,10 +438,21 @@ export const UserSocialAuth = CatchAsyncError(
           } else if (result.length <= 0) {
             pool.query(
               `INSERT INTO users (email, username, avatar_url, verified) VALUES ("${email}","${username}","${avatar_url}","${1}")`,
-              (err, result: any) => {
+              async (err, result: any) => {
                 if (err) {
                   return next(new ErrorHandler(err, 500));
                 }
+                // test code
+                const title = "Account Creation Successful";
+                const notification_message =
+                  "Thank you for signing up with our platform. Start shopping at affordable rates for high quality products guarantee to surpass your expectations!";
+                const user_id = result.insertId;
+
+                await CreateNotificationQuery(
+                  title,
+                  notification_message,
+                  user_id
+                );
                 const user = {
                   username,
                   email,
@@ -448,8 +482,8 @@ interface IUpdateUserInfo {
 export const UserUpdateInfo = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { username, phone } = req.body as IUpdateUserInfo;
-      if (!username || !phone) {
+      let { username, phone } = req.body as IUpdateUserInfo;
+      if (!username && !phone) {
         return next(new ErrorHandler(`No information to update`, 422));
       }
       const userId: any = req.user?.id;
@@ -464,37 +498,27 @@ export const UserUpdateInfo = CatchAsyncError(
             )
           );
         }
-        if (username) {
-          pool.query(
-            `UPDATE users SET username = ? WHERE id = ?`,
-            [username, userId],
-            async (err, result: any) => {
-              if (err) {
-                return next(new ErrorHandler(err, 500));
-              }
-              user.username = username;
-              await redis.set(userId, JSON.stringify(user));
+        username = username || user.username;
+        phone = phone || user.phone;
+
+        pool.query(
+          `UPDATE users SET username = ?, phone = ? WHERE id = ?`,
+          [username, phone, userId],
+          async (err, result: any) => {
+            if (err) {
+              return next(new ErrorHandler(err, 500));
             }
-          );
-        }
-        if (phone) {
-          pool.query(
-            `UPDATE users SET phone = ? WHERE id = ?`,
-            [phone, userId],
-            async (err, result: any) => {
-              if (err) {
-                return next(new ErrorHandler(err, 500));
-              }
-              user.phone = phone;
-              await redis.set(userId, JSON.stringify(user));
-            }
-          );
-        }
-        res.status(201).json({
-          success: true,
-          message: "Information successfully updated",
-          // user: user,
-        });
+            user.username = username;
+            user.phone = phone;
+            await redis.set(userId, JSON.stringify(user)).then(() => {
+              res.status(201).json({
+                success: true,
+                message: "Information successfully updated",
+                // user: user,
+              });
+            });
+          }
+        );
       }
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
@@ -601,18 +625,12 @@ export const UserUpdateProfilePic = CatchAsyncError(
           if (result[0].avatar_public_id) {
             // delete old image first
             await cloudinary.uploader.destroy(result[0].avatar_public_id);
-            const myCloud = await cloudinary.uploader.upload(avatar, {
-              folder: "avatars",
-            });
-            avatar_public_id = myCloud.public_id;
-            avatar_url = myCloud.secure_url;
-          } else {
-            const myCloud = await cloudinary.uploader.upload(avatar, {
-              folder: "avatars",
-            });
-            avatar_public_id = myCloud.public_id;
-            avatar_url = myCloud.secure_url;
           }
+          const myCloud = await cloudinary.uploader.upload(avatar, {
+            folder: "avatars",
+          });
+          avatar_public_id = myCloud.public_id;
+          avatar_url = myCloud.secure_url;
           pool.query(
             `UPDATE users SET avatar_public_id = ?, avatar_url = ? WHERE id = ?`,
             [avatar_public_id, avatar_url, userId],
@@ -728,19 +746,121 @@ export const UserDeleteUser = CatchAsyncError(
           await redis.del(id).then((result) => {
             console.log("User cache successfully cleared");
           });
+          const title = "Account Deletion Successful";
+          const notification_message = `User ${id} deleted their account`;
+
+          await CreateNotificationQuery(
+            title,
+            notification_message,
+            Number(id)
+          );
           pool.query(
             `DELETE FROM users WHERE id = ?`,
             [id],
-            (err, results: any) => {
+            async (err, results: any) => {
               if (err) {
                 return next(new ErrorHandler(err, 500));
               }
+
               res.status(201).json({
                 success: true,
                 message: `The user successfully deleted`,
               });
             }
           );
+        }
+      );
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+//send reset email
+export const UserResetMail = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, link } = req.body;
+      if (!email || !link) {
+        return next(
+          new ErrorHandler("Please provide all the necessary information", 400)
+        );
+      }
+      pool.query(
+        `SELECT * FROM users WHERE email = ?`,
+        [email],
+        (err, results: any) => {
+          if (err) {
+            return next(new ErrorHandler(err.message, 500));
+          }
+          if (results.length === 0) {
+            return next(
+              new ErrorHandler("There is no user with the specified mail", 400)
+            );
+          }
+        }
+      );
+
+      const data = { link };
+      const html = ejs.renderFile(
+        path.join(__dirname, "../mails/Reset-Password.ejs"),
+        data
+      );
+      try {
+        await sendMail(
+          {
+            email: email,
+            subject: "Ecommerce Password Reset",
+            template: "Reset-Password.ejs",
+            data,
+          },
+          next
+        );
+
+        res.status(201).json({
+          success: true,
+          message: `Email successfully sent. Check your mail to reset your password`,
+        });
+      } catch (error: any) {
+        return next(new ErrorHandler(error.message, 400));
+      }
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+interface IForgotPassword {
+  password: string;
+  passwordConfirm: string;
+}
+//forgot password
+export const UserForgotPassword = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const email = req.params.email;
+      const { password, passwordConfirm } = req.body as IForgotPassword;
+      if (!password || !passwordConfirm) {
+        return next(
+          new ErrorHandler(`Please provide all the information required`, 400)
+        );
+      }
+      if (password !== passwordConfirm) {
+        return next(new ErrorHandler(`Both passwords must match`, 400));
+      }
+      await ResetPasswordQuery(email);
+      const hashed_password = await bcrypt.hash(password, 10);
+      pool.query(
+        `UPDATE users SET password = ? WHERE email = ?`,
+        [hashed_password, email],
+        (err, results: any) => {
+          if (err) {
+            return next(new ErrorHandler(err.message, 500));
+          }
+          res.status(200).json({
+            success: true,
+            message: `Password updated successfully`,
+          });
         }
       );
     } catch (error: any) {

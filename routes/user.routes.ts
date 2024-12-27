@@ -3,11 +3,13 @@ import { authorizedRoles, isAuthenticated } from "../middleware/Auth";
 import {
   UserActivation,
   UserDeleteUser,
+  UserForgotPassword,
   UserGetAllUsersInfo,
   UserGetUserInfo,
   UserLogin,
   UserLogout,
   UserRegistration,
+  UserResetMail,
   UserSocialAuth,
   UserUpdateAccessToken,
   UserUpdateInfo,
@@ -66,7 +68,7 @@ UserRouter.delete(
   isAuthenticated,
   UserDeleteUser
 );
-// UserRouter.post("/send-reset-email", UserResetMail);
-// UserRouter.post("/forgot-password/:email", UserForgotPassword);
+UserRouter.post("/send-reset-email", UserResetMail);
+UserRouter.post("/forgot-password/:email", UserForgotPassword);
 
 export default UserRouter;

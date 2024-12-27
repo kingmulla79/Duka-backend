@@ -8,6 +8,9 @@ import morgan from "morgan";
 import UserRouter from "./routes/user.routes";
 import ProductRouter from "./routes/products.routes";
 import CommentRouter from "./routes/comments.routes";
+import OrderRouter from "./routes/orders.routes";
+import NotificationRouter from "./routes/notification.routes";
+import FAQRouter from "./routes/faq.routes";
 
 // body parser
 app.use(express.json({ limit: "50mb" }));
@@ -26,6 +29,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", UserRouter);
 app.use("/api/prod", ProductRouter);
 app.use("/api/comments", CommentRouter);
+app.use("/api/order", OrderRouter);
+app.use("/api/notification", NotificationRouter);
+app.use("/api/faq", FAQRouter);
 
 // middleware to catch error from unknown routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {

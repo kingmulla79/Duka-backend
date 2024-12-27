@@ -3,6 +3,7 @@ import ErrorHandler from "../utils/Errorhandler";
 import { CatchAsyncError } from "../middleware/CatchAsyncErrors";
 import { pool } from "../utils/Database";
 import { v2 as cloudinary } from "cloudinary";
+import { CreateNotificationQuery } from "./notifications.controller";
 
 export default interface IProductsRegistration {
   name: string;
@@ -34,10 +35,18 @@ export const AddProduct = CatchAsyncError(
       const prod_url = myCloud.secure_url;
       pool.query(
         `INSERT INTO products (name, category_id, price, prod_desc, rating, stock, prod_public_id, prod_url) VALUES ("${name}", "${category_id}", "${price}", "${prod_desc}", "${rating}", "${stock}", "${prod_public_id}", "${prod_url}")`,
-        (err, result) => {
+        async (err, result: any) => {
           if (err) {
             return next(new ErrorHandler(err, 500));
           } else {
+            const title = "Product Creation Successful";
+            const notification_message = `User ${req.user?.id} added a new product ${result.insertId}`;
+
+            await CreateNotificationQuery(
+              title,
+              notification_message,
+              Number(req.user?.id)
+            );
             res.status(201).json({
               success: true,
               message: `Product added successfully`,
@@ -195,14 +204,22 @@ export const DeleteProduct = CatchAsyncError(
           pool.query(
             `DELETE FROM products WHERE id = ?`,
             [id],
-            (err: any, result: any) => {
+            async (err: any, result: any) => {
               if (err) {
                 return next(new ErrorHandler(err.message, 500));
               }
+              const title = "Product Deletion Successful";
+              const notification_message = `User ${req.user?.id} deleted a product ${id}`;
+
+              await CreateNotificationQuery(
+                title,
+                notification_message,
+                Number(req.user?.id)
+              );
               if (result) {
                 res.status(201).json({
                   success: true,
-                  message: "Product successfully updated",
+                  message: "Product successfully deleted",
                 });
               }
             }
