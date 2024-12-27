@@ -109,7 +109,7 @@ export const FetchCommentsForASingleProduct = CatchAsyncError(
             return next(new ErrorHandler(err.message, 500));
           }
           if (results.length > 0) {
-            res.status(201).json({
+            res.status(200).json({
               success: true,
               message: `Comments successfully fetched`,
               comments: results,
@@ -135,7 +135,7 @@ export const FetchCommentsByAUser = CatchAsyncError(
             return next(new ErrorHandler(err.message, 500));
           }
           if (results.length > 0) {
-            res.status(201).json({
+            res.status(200).json({
               success: true,
               message: `Comments successfully fetched`,
               comments: results,
