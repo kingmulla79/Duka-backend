@@ -69,6 +69,6 @@ UserRouter.delete(
   UserDeleteUser
 );
 UserRouter.post("/send-reset-email", UserResetMail);
-UserRouter.post("/forgot-password/:email", UserForgotPassword);
+UserRouter.put("/forgot-password/:email", UserForgotPassword);
 
 export default UserRouter;
