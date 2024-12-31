@@ -115,15 +115,15 @@ export const DeleteNotifications = CatchAsyncError(
     }
   }
 );
-cron.schedule("0 * * * *", async () => {
-  pool.query(
-    "DELETE * FROM notifications WHERE not_status = read AND `date` <= (NOW() - INTERVAL 30 DAY)",
-    (err: any, results: any) => {
-      if (err) {
-        console.log(err.message);
-      }
-      console.log("_____________");
-      console.log("running cron: deleting read notification");
-    }
-  );
-});
+// cron.schedule("0 * * * *", async () => {
+//   pool.query(
+//     "DELETE * FROM notifications WHERE not_status = read AND `date` <= (NOW() - INTERVAL 30 DAY)",
+//     (err: any, results: any) => {
+//       if (err) {
+//         console.log(err.message);
+//       }
+//       console.log("_____________");
+//       console.log("running cron: deleting read notification");
+//     }
+//   );
+// });

@@ -24,14 +24,13 @@ app.use(
   })
 );
 
-app.use(express.urlencoded({ extended: true }));
-
 app.use("/api/auth", UserRouter);
 app.use("/api/prod", ProductRouter);
 app.use("/api/comments", CommentRouter);
 app.use("/api/order", OrderRouter);
 app.use("/api/notification", NotificationRouter);
 app.use("/api/faq", FAQRouter);
+app.use(express.urlencoded({ extended: true }));
 
 // middleware to catch error from unknown routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
