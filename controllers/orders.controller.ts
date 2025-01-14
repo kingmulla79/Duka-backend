@@ -59,6 +59,25 @@ export const FetchOrdersByAUser = CatchAsyncError(
   }
 );
 
+export const FetchAllUserOrders = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      pool.query(`SELECT * FROM orders`, (err: any, results: Array<any>) => {
+        if (err) {
+          return next(new ErrorHandler(err.message, 500));
+        }
+        res.status(200).json({
+          success: true,
+          message: `Orders successfully fetched`,
+          orders: results,
+        });
+      });
+    } catch (err: any) {
+      return next(new ErrorHandler(err.message, 500));
+    }
+  }
+);
+
 export const SortOrdersByPrice = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -124,8 +124,8 @@ export const UserRegistration = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       let { username, email, password, phone, avatar } = req.body;
-      let avatar_public_id;
-      let avatar_url;
+      let avatar_public_id = "";
+      let avatar_url = "";
 
       if (!username || !email! || !password) {
         return next(new ErrorHandler("Please provide all the details", 422));
@@ -435,7 +435,7 @@ export const UserSocialAuth = CatchAsyncError(
         (err, result: any) => {
           if (err) {
             return next(new ErrorHandler(err, 500));
-          } else if (result.length <= 0) {
+          } else if (result.length === 0) {
             pool.query(
               `INSERT INTO users (email, username, avatar_url, verified) VALUES ("${email}","${username}","${avatar_url}","${1}")`,
               async (err, result: any) => {
@@ -490,7 +490,7 @@ export const UserUpdateInfo = CatchAsyncError(
       const UserJSON = await redis.get(userId);
       if (UserJSON) {
         let user = JSON.parse(UserJSON);
-        if (user.username === username || user.phone === phone) {
+        if (user.username === username && user.phone === phone) {
           return next(
             new ErrorHandler(
               `Updated information cannot be the same as the available one`,
