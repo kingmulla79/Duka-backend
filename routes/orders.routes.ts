@@ -3,6 +3,7 @@ import { authorizedRoles, isAuthenticated } from "../middleware/Auth";
 import {
   DeleteOrder,
   EditOrderDetails,
+  FetchAllUserOrders,
   FetchOrdersByAUser,
   NewOrder,
   SortOrdersByPrice,
@@ -21,6 +22,13 @@ OrderRouter.get(
   UserUpdateAccessToken,
   isAuthenticated,
   FetchOrdersByAUser
+);
+OrderRouter.get(
+  "/get-all-orders",
+  UserUpdateAccessToken,
+  isAuthenticated,
+  authorizedRoles("admin"),
+  FetchAllUserOrders
 );
 OrderRouter.get(
   "/sort-user-orders",

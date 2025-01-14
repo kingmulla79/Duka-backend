@@ -7,6 +7,7 @@ import {
   DeleteProductCategory,
   EditProduct,
   GetAllProduct,
+  GetAllProductCategories,
   GetProductById,
   UpdateProductCategory,
 } from "../controllers/products.controller";
@@ -71,6 +72,13 @@ ProductRouter.delete(
   isAuthenticated,
   authorizedRoles("admin"),
   DeleteProductCategory
+);
+ProductRouter.get(
+  "/get-product-categories",
+  UserUpdateAccessToken,
+  isAuthenticated,
+  authorizedRoles("admin"),
+  GetAllProductCategories
 );
 
 export default ProductRouter;

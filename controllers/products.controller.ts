@@ -28,6 +28,20 @@ export const AddProduct = CatchAsyncError(
         prod_photo,
       }: IProductsRegistration = req.body;
 
+      if (
+        !name ||
+        !category_id ||
+        !price ||
+        !prod_desc ||
+        !rating ||
+        !stock ||
+        !prod_photo
+      ) {
+        return next(
+          new ErrorHandler("Please provide all the necessary information", 409)
+        );
+      }
+
       const myCloud = await cloudinary.uploader.upload(prod_photo, {
         folder: "products",
       });
@@ -37,6 +51,7 @@ export const AddProduct = CatchAsyncError(
         `INSERT INTO products (name, category_id, price, prod_desc, rating, stock, prod_public_id, prod_url) VALUES ("${name}", "${category_id}", "${price}", "${prod_desc}", "${rating}", "${stock}", "${prod_public_id}", "${prod_url}")`,
         async (err, result: any) => {
           if (err) {
+            console.log(err);
             return next(new ErrorHandler(err, 500));
           } else {
             const title = "Product Creation Successful";
@@ -257,6 +272,24 @@ export const AddNewProductCategory = CatchAsyncError(
           });
         }
       );
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+export const GetAllProductCategories = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      pool.query(`SELECT * FROM prod_category`, (err, results: Array<any>) => {
+        if (err) {
+          return next(new ErrorHandler(err.message, 500));
+        }
+        res.status(201).json({
+          success: true,
+          message: "Product category data successfully fetched",
+          product_categories: results,
+        });
+      });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
     }
