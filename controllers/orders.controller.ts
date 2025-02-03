@@ -78,6 +78,38 @@ export const FetchAllUserOrders = CatchAsyncError(
   }
 );
 
+export const GetOrderAnalytics = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      pool.query(
+        `WITH months AS ( SELECT DATE_FORMAT(NOW() - INTERVAL n MONTH, '%Y-%m') AS month_year, DATE_FORMAT(NOW() - INTERVAL n MONTH, '%M') AS month_name FROM ( SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 ) AS numbers)
+        SELECT
+            m.month_year,
+            m.month_name,
+        COALESCE(COUNT(orders.id), 0) AS record_count
+        FROM months m
+        LEFT JOIN orders
+            ON DATE_FORMAT(orders.timestamp, '%Y-%m') = m.month_year
+            GROUP BY m.month_year, m.month_name
+            ORDER BY m.month_year`,
+        (err, results: Array<any>) => {
+          if (err) {
+            return next(new ErrorHandler(err.message, 500));
+          }
+
+          res.status(201).json({
+            success: true,
+            message: "orders analytics data successfully fetched",
+            data: results,
+          });
+        }
+      );
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
 export const SortOrdersByPrice = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {

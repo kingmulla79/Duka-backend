@@ -8,6 +8,7 @@ import {
   EditProduct,
   GetAllProduct,
   GetAllProductCategories,
+  GetProductAnalytics,
   GetProductById,
   UpdateProductCategory,
 } from "../controllers/products.controller";
@@ -27,6 +28,13 @@ ProductRouter.put(
   isAuthenticated,
   authorizedRoles("admin"),
   EditProduct
+);
+ProductRouter.get(
+  "/get-product-analytics",
+  UserUpdateAccessToken,
+  isAuthenticated,
+  authorizedRoles("admin"),
+  GetProductAnalytics
 );
 ProductRouter.get(
   "/get-products",

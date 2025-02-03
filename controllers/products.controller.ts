@@ -79,6 +79,7 @@ export const EditProduct = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = req.params.id;
+      let product_photo_url: string;
       pool.query(
         `SELECT * FROM products WHERE id = ?`,
         [id],
@@ -91,6 +92,7 @@ export const EditProduct = CatchAsyncError(
               new ErrorHandler(`No product with the provided id`, 401)
             );
           }
+          product_photo_url = result[0].prod_url;
           let {
             name,
             category_id,
@@ -103,7 +105,7 @@ export const EditProduct = CatchAsyncError(
           let prod_public_id = "";
           let prod_url = "";
 
-          if (prod_photo) {
+          if (prod_photo !== product_photo_url) {
             await cloudinary.uploader.destroy(result[0].prod_public_id);
             const myCloud = await cloudinary.uploader.upload(prod_photo, {
               folder: "products",
@@ -143,6 +145,38 @@ export const EditProduct = CatchAsyncError(
               });
             }
           );
+        }
+      );
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
+export const GetProductAnalytics = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      pool.query(
+        `WITH months AS ( SELECT DATE_FORMAT(NOW() - INTERVAL n MONTH, '%Y-%m') AS month_year, DATE_FORMAT(NOW() - INTERVAL n MONTH, '%M') AS month_name FROM ( SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 ) AS numbers)
+        SELECT
+            m.month_year,
+            m.month_name,
+        COALESCE(COUNT(products.id), 0) AS record_count
+        FROM months m
+        LEFT JOIN products
+            ON DATE_FORMAT(products.timestamp, '%Y-%m') = m.month_year
+            GROUP BY m.month_year, m.month_name
+            ORDER BY m.month_year`,
+        (err, results: Array<any>) => {
+          if (err) {
+            return next(new ErrorHandler(err.message, 500));
+          }
+
+          res.status(201).json({
+            success: true,
+            message: "Product analytics data successfully fetched",
+            data: results,
+          });
         }
       );
     } catch (error: any) {

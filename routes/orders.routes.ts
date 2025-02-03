@@ -5,6 +5,7 @@ import {
   EditOrderDetails,
   FetchAllUserOrders,
   FetchOrdersByAUser,
+  GetOrderAnalytics,
   NewOrder,
   SortOrdersByPrice,
 } from "../controllers/orders.controller";
@@ -22,6 +23,13 @@ OrderRouter.get(
   UserUpdateAccessToken,
   isAuthenticated,
   FetchOrdersByAUser
+);
+OrderRouter.get(
+  "/get-order-analytics",
+  UserUpdateAccessToken,
+  isAuthenticated,
+  authorizedRoles("admin"),
+  GetOrderAnalytics
 );
 OrderRouter.get(
   "/get-all-orders",

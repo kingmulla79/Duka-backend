@@ -82,7 +82,7 @@ export const FetchFAQs = CatchAsyncError(
             res.status(200).json({
               success: true,
               message: `FAQs successfully fetched`,
-              comments: results,
+              FAQs: results,
             });
           }
           if (results.length === 0) {

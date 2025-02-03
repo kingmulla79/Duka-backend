@@ -1,6 +1,7 @@
 import express from "express";
 import { authorizedRoles, isAuthenticated } from "../middleware/Auth";
 import {
+  GetUserAnalytics,
   UserActivation,
   UserDeleteUser,
   UserForgotPassword,
@@ -35,6 +36,13 @@ UserRouter.get(
   isAuthenticated,
   authorizedRoles("admin"),
   UserGetAllUsersInfo
+);
+UserRouter.get(
+  "/get-users-analytics",
+  UserUpdateAccessToken,
+  isAuthenticated,
+  authorizedRoles("admin"),
+  GetUserAnalytics
 );
 UserRouter.post("/social-auth", UserSocialAuth);
 UserRouter.put(
