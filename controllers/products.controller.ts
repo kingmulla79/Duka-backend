@@ -13,6 +13,7 @@ export default interface IProductsRegistration {
   rating?: number;
   stock?: number;
   prod_photo: string;
+  search_name: string;
 }
 
 export const AddProduct = CatchAsyncError(
@@ -26,6 +27,7 @@ export const AddProduct = CatchAsyncError(
         rating,
         stock,
         prod_photo,
+        search_name,
       }: IProductsRegistration = req.body;
 
       if (
@@ -35,7 +37,8 @@ export const AddProduct = CatchAsyncError(
         !prod_desc ||
         !rating ||
         !stock ||
-        !prod_photo
+        !prod_photo ||
+        !search_name
       ) {
         return next(
           new ErrorHandler("Please provide all the necessary information", 409)
@@ -48,7 +51,7 @@ export const AddProduct = CatchAsyncError(
       const prod_public_id = myCloud.public_id;
       const prod_url = myCloud.secure_url;
       pool.query(
-        `INSERT INTO products (name, category_id, price, prod_desc, rating, stock, prod_public_id, prod_url) VALUES ("${name}", "${category_id}", "${price}", "${prod_desc}", "${rating}", "${stock}", "${prod_public_id}", "${prod_url}")`,
+        `INSERT INTO products (name, category_id, price, prod_desc, rating, stock, prod_public_id, prod_url, search_name) VALUES ("${name}", "${category_id}", "${price}", "${prod_desc}", "${rating}", "${stock}", "${prod_public_id}", "${prod_url}", "${search_name}")`,
         async (err, result: any) => {
           if (err) {
             console.log(err);
@@ -231,6 +234,88 @@ export const GetProductById = CatchAsyncError(
   }
 );
 
+export const ProductSearchBarFilter = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      pool.query(
+        `SELECT DISTINCT search_name FROM products`,
+        (err, results: Array<any>) => {
+          if (err) {
+            return next(new ErrorHandler(err.message, 500));
+          }
+
+          res.status(201).json({
+            success: true,
+            message: `Product search name data successfully fetched`,
+            search_name: results,
+          });
+        }
+      );
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
+export const ProductSearchResults = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { search_name } = req.params;
+      console.log(search_name);
+      pool.query(
+        `SELECT * FROM products WHERE search_name = ?`,
+        [search_name],
+        (err, results: Array<any>) => {
+          if (err) {
+            return next(new ErrorHandler(err.message, 500));
+          }
+
+          res.status(201).json({
+            success: true,
+            message: `Product search results successfully fetched`,
+            products: results,
+          });
+        }
+      );
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
+export const ProductAbstractFilter = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { column, pattern } = req.query;
+
+      console.log(column, pattern);
+      pool.query(
+        `SELECT * FROM products WHERE ${column} LIKE "%${pattern}%"`,
+        (err, results: Array<any>) => {
+          if (err) {
+            return next(new ErrorHandler(err.message, 500));
+          }
+          if (results.length <= 0) {
+            return next(
+              new ErrorHandler(
+                `No record with the specified search pattern`,
+                422
+              )
+            );
+          }
+          res.status(201).json({
+            success: true,
+            message: `Product search data successfully fetched`,
+            products: results,
+          });
+        }
+      );
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
 export const DeleteProduct = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -290,11 +375,18 @@ function capitalizeFirstLetter(val: string) {
 export const AddNewProductCategory = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { category_name } = req.body;
+      const { category_name, category_photo } = req.body;
 
       capitalizeFirstLetter(category_name);
+
+      const myCloud = await cloudinary.uploader.upload(category_photo, {
+        folder: "category",
+      });
+      const category_public_id = myCloud.public_id;
+      const category_url = myCloud.secure_url;
+
       pool.query(
-        `INSERT INTO prod_category (category_name) VALUES ("${category_name}")`,
+        `INSERT INTO prod_category (category_name, category_public_id, category_url) VALUES ("${category_name}", "${category_public_id}", "${category_url}")`,
         (err: any, result: any) => {
           if (err) {
             return next(new ErrorHandler(err.message, 500));
