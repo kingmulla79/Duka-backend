@@ -10,6 +10,9 @@ import {
   GetAllProductCategories,
   GetProductAnalytics,
   GetProductById,
+  ProductAbstractFilter,
+  ProductSearchBarFilter,
+  ProductSearchResults,
   UpdateProductCategory,
 } from "../controllers/products.controller";
 import { UserUpdateAccessToken } from "../controllers/user.controller";
@@ -36,19 +39,21 @@ ProductRouter.get(
   authorizedRoles("admin"),
   GetProductAnalytics
 );
-ProductRouter.get(
-  "/get-products",
-  UserUpdateAccessToken,
-  isAuthenticated,
-  authorizedRoles("admin"),
-  GetAllProduct
-);
+ProductRouter.get("/get-products", GetAllProduct);
 ProductRouter.get(
   "/get-product/:id",
   UserUpdateAccessToken,
   isAuthenticated,
-  authorizedRoles("admin"),
   GetProductById
+);
+ProductRouter.get("/get-product-search-name", ProductSearchBarFilter);
+ProductRouter.get(
+  "/get-product-search-results/:search_name",
+  ProductSearchResults
+);
+ProductRouter.get(
+  "/product-search-filter/filter_details",
+  ProductAbstractFilter
 );
 ProductRouter.delete(
   "/delete-product/:id",
@@ -81,12 +86,6 @@ ProductRouter.delete(
   authorizedRoles("admin"),
   DeleteProductCategory
 );
-ProductRouter.get(
-  "/get-product-categories",
-  UserUpdateAccessToken,
-  isAuthenticated,
-  authorizedRoles("admin"),
-  GetAllProductCategories
-);
+ProductRouter.get("/get-product-categories", GetAllProductCategories);
 
 export default ProductRouter;
