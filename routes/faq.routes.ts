@@ -23,7 +23,7 @@ FAQRouter.put(
   authorizedRoles("admin"),
   EditFAQ
 );
-FAQRouter.get("/get-faqs", UserUpdateAccessToken, isAuthenticated, FetchFAQs);
+FAQRouter.get("/get-faqs", FetchFAQs);
 
 FAQRouter.delete(
   "/delete-faq/:faq_id",
