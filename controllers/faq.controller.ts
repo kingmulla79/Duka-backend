@@ -70,29 +70,24 @@ export const EditFAQ = CatchAsyncError(
 export const FetchFAQs = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { user_id } = req.params;
-      pool.query(
-        `SELECT * FROM faq`,
-        [user_id],
-        (err: any, results: Array<any>) => {
-          if (err) {
-            return next(new ErrorHandler(err.message, 500));
-          }
-          if (results.length > 0) {
-            res.status(200).json({
-              success: true,
-              message: `FAQs successfully fetched`,
-              FAQs: results,
-            });
-          }
-          if (results.length === 0) {
-            res.status(200).json({
-              success: true,
-              message: `No FAQs fetched posted yet`,
-            });
-          }
+      pool.query(`SELECT * FROM faq`, (err: any, results: Array<any>) => {
+        if (err) {
+          return next(new ErrorHandler(err.message, 500));
         }
-      );
+        if (results.length > 0) {
+          res.status(200).json({
+            success: true,
+            message: `FAQs successfully fetched`,
+            FAQs: results,
+          });
+        }
+        if (results.length === 0) {
+          res.status(200).json({
+            success: true,
+            message: `No FAQs fetched posted yet`,
+          });
+        }
+      });
     } catch (err: any) {
       return next(new ErrorHandler(err.message, 500));
     }

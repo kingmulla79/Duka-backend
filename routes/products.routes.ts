@@ -13,6 +13,7 @@ import {
   ProductAbstractFilter,
   ProductSearchBarFilter,
   ProductSearchResults,
+  StripePayment,
   UpdateProductCategory,
 } from "../controllers/products.controller";
 import { UserUpdateAccessToken } from "../controllers/user.controller";
@@ -40,12 +41,7 @@ ProductRouter.get(
   GetProductAnalytics
 );
 ProductRouter.get("/get-products", GetAllProduct);
-ProductRouter.get(
-  "/get-product/:id",
-  UserUpdateAccessToken,
-  isAuthenticated,
-  GetProductById
-);
+ProductRouter.get("/get-product/:id", GetProductById);
 ProductRouter.get("/get-product-search-name", ProductSearchBarFilter);
 ProductRouter.get(
   "/get-product-search-results/:search_name",
@@ -87,5 +83,12 @@ ProductRouter.delete(
   DeleteProductCategory
 );
 ProductRouter.get("/get-product-categories", GetAllProductCategories);
+
+ProductRouter.post(
+  "/payment-intent",
+  UserUpdateAccessToken,
+  isAuthenticated,
+  StripePayment
+);
 
 export default ProductRouter;

@@ -4,6 +4,7 @@ import { CatchAsyncError } from "../middleware/CatchAsyncErrors";
 import { pool } from "../utils/Database";
 import { v2 as cloudinary } from "cloudinary";
 import { CreateNotificationQuery } from "./notifications.controller";
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 export default interface IProductsRegistration {
   name: string;
@@ -470,6 +471,34 @@ export const DeleteProductCategory = CatchAsyncError(
         }
       );
     } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+);
+
+export const StripePayment = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { amount } = req.body;
+
+      if (!amount) {
+        return next(new ErrorHandler("Please provide the amount", 409));
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+      res.status(201).json({
+        success: true,
+        message: "Payment intent created successfully",
+        clientSecret: paymentIntent.client_secret,
+      });
+    } catch (error: any) {
+      console.log(error);
       return next(new ErrorHandler(error.message, 500));
     }
   }
