@@ -16,7 +16,7 @@ export const NewOrder = CatchAsyncError(
         "Thank you for your purchase. Please see the information about your order in the profile section";
 
       pool.query(
-        `INSERT INTO orders (user_id, total_order_price, products, payment_info) VALUES ('${user_id}', '${total_order_price}', '${product_JSON}', '${payment_JSON}')`,
+        `INSERT INTO orders (order_status, user_id, total_order_price, products, payment_info) VALUES ('paid','${user_id}', '${total_order_price}', '${product_JSON}', '${payment_JSON}')`,
         async (err: any, results: any) => {
           if (err) {
             return next(new ErrorHandler(err.message, 500));
@@ -181,59 +181,3 @@ export const DeleteOrder = CatchAsyncError(
     }
   }
 );
-
-// const CreateOrderQuery = (user_id: number, total_order_price: number) => {
-//   return new Promise((resolve, reject) => {
-//     pool.query(
-//       `INSERT INTO orders (user_id, total_order_price) VALUES (?, ?)`,
-//       [user_id, total_order_price],
-//       (err: any, results: any) => {
-//         if (err) {
-//           return reject(new ErrorHandler(err.message, 500));
-//         }
-
-//         console.log(`Order created successfully`);
-//         resolve(results);
-//       }
-//     );
-//   });
-// };
-
-// export const NewOrder = CatchAsyncError(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//       let insertId: number;
-//       const user_id = req.user?.id;
-//       const { total_order_price, products } = req.body;
-
-//       const results: any = await CreateOrderQuery(user_id, total_order_price);
-
-//       insertId = results.insertId;
-
-//       await products.forEach((product: any) => {
-//         pool.query(
-//           `INSERT INTO order_product (order_id, product_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)`,
-//           [
-//             insertId,
-//             product.product_id,
-//             product.quantity,
-//             product.unit_price,
-//             product.total_price,
-//           ],
-//           (err: any, results: any) => {
-//             if (err) {
-//               return next(new ErrorHandler(err.message, 500));
-//             }
-//             console.log(`Order product inserted successfully`);
-//           }
-//         );
-//       });
-//       res.status(201).json({
-//         success: true,
-//         message: `Order created successfully`,
-//       });
-//     } catch (err: any) {
-//       return next(new ErrorHandler(err.message, 500));
-//     }
-//   }
-// );
