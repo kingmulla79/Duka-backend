@@ -35,23 +35,56 @@ export const NewComment = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { comments, rating, product_id }: IComments = req.body;
+
+      if (comments === "") {
+        return next(
+          new ErrorHandler("Please provide a comment for the product", 401)
+        );
+      }
       const user_id = req.user?.id;
 
       await CommentQuery(user_id, product_id);
 
       pool.query(
-        `INSERT INTO comments (comments, rating, product_id, user_id) VALUES (?, ?, ?, ?)`,
-        [comments, rating, product_id, user_id],
-        (err: any, results: any) => {
+        `SELECT * FROM products WHERE id = ?`,
+        [product_id],
+        (err, result: Array<any>) => {
           if (err) {
             return next(new ErrorHandler(err.message, 500));
           }
-          if (results) {
-            res.status(201).json({
-              success: true,
-              message: "Comment successfully created",
-            });
+
+          let prod_rating = result[0].rating;
+
+          if (prod_rating == 0) {
+            prod_rating = rating;
+          } else {
+            prod_rating = (prod_rating + rating) / 2;
           }
+
+          pool.query(
+            `UPDATE products SET rating = ? WHERE id = ?`,
+            [prod_rating, product_id],
+            (err, result) => {
+              if (err) {
+                return next(new ErrorHandler(err.message, 500));
+              }
+              pool.query(
+                `INSERT INTO comments (comments, rating, product_id, user_id) VALUES (?, ?, ?, ?)`,
+                [comments, rating, product_id, user_id],
+                (err: any, results: any) => {
+                  if (err) {
+                    return next(new ErrorHandler(err.message, 500));
+                  }
+                  if (results) {
+                    res.status(201).json({
+                      success: true,
+                      message: "Comment successfully created",
+                    });
+                  }
+                }
+              );
+            }
+          );
         }
       );
     } catch (err: any) {
@@ -114,6 +147,11 @@ export const FetchCommentsForASingleProduct = CatchAsyncError(
               message: `Comments successfully fetched`,
               comments: results,
             });
+          } else {
+            res.status(200).json({
+              success: true,
+              message: `No comments posted yet`,
+            });
           }
         }
       );
@@ -139,6 +177,11 @@ export const FetchCommentsByAUser = CatchAsyncError(
               success: true,
               message: `Comments successfully fetched`,
               comments: results,
+            });
+          } else {
+            res.status(200).json({
+              success: true,
+              message: `No comments posted yet`,
             });
           }
         }

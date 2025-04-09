@@ -34,7 +34,6 @@ UserRouter.get(
   "/get-all-users-info",
   UserUpdateAccessToken,
   isAuthenticated,
-  authorizedRoles("admin"),
   UserGetAllUsersInfo
 );
 UserRouter.get(
